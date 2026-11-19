@@ -43,6 +43,8 @@ export DSH_INSTALL="$prefix/node_modules/@deepseek-ai/dsh"
 export DSH_TOOLS_DIR="$prefix/node_modules/@deepseek-ai/dsh-tools"
 export DSH_FS_LOCAL_ORIGINAL_JS="$prefix/fs-local-original.js"
 
+cd "$root"
+
 # Test glob expansion must find actual files, and TAP must contain real passing tests.
 shopt -s nullglob
 files=("$root"/runtime/tests/*.test.mjs "$root"/app/tool/engine_auth/*.test.mjs)
