@@ -97,3 +97,30 @@ If there is no platform-supported secure mechanism for points 1 and 3, the targe
 - Program claims and operational domains remain disabled.
 
 **This report records findings, blockers and the next reproducible tests. It does not report a PASS for tests not executed.**
+## Additional Phase 0 evidence: actual Scheduled Task GitHub write
+
+**Observed from independent sources, 2026-11-20:** The existing `DSH Go engineering loop` recorded a completed run scheduled for `2026-11-19T19:00:00Z` (02:00 Asia/Bangkok), whose automation result reported posting evidence to GitHub Issue #6. A separate GitHub connector read found the actual comment at [Issue #6 comment 7019117047](https://github.com/Waytid-way/dsh-Go/issues/6#issuecomment-7019117047) with the described checkpoint content. The run's `requires_user_action` flag was `false`.
+
+**Inference with evidence:** At least this existing Scheduled Task has successfully performed an external GitHub Issue Comment write under the currently connected account. This confirms a real external-write path that does not pass through the planned Supabase Gateway. It does not establish what credentials every other Task would receive, and does not prove that per-Task restrictions are impossible. However, even if a future Gateway verifies distinct worker principals, this existing write capability must be blocked or constrained for workers that should not bypass the Gateway.
+
+### Capability boundary and alternatives
+
+An authorization service cannot distinguish two callers if they present the **same trusted principal, same effective permissions, and no independently verifiable task claim**. A `task_id`, `worker_id`, domain name or idempotency key supplied as ordinary text cannot resolve the ambiguity. Supabase JWT verification proves the caller identified by the JWT; it does not by itself prove which ChatGPT Task used a shared app connection.
+
+Official ChatGPT product documentation currently establishes:
+- [Scheduled tasks](https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt) use connected apps with account/workspace permissions and approvals; it does **not** document separately signed per-task principals for tasks sharing one connection.
+- [Sharing scheduled tasks](https://help.openai.com/en/articles/7925741-sharing-conversations-and-scheduled-tasks-in-chatgpt) lets recipients schedule separate copies using *their own connected accounts*. This could provide separate account-level identities if operated by separate authorized users; not verified or authorized for this project.
+- [Workspace Agents for Business and Enterprise](https://help.openai.com/en/articles/20001143-chatgpt-workspace-agents-for-enterprise-and-business) support schedules and agent-level tool/connection safety controls. This is a **different agent runtime and eligible workspace feature**, not proof of per-Task isolation for current Scheduled Tasks. Replacing runtime would require a new architecture decision and access review.
+
+**Candidate follow-ups, ordered by least disruption:**
+
+1. **No-change research mode:** keep existing DSH Go loop, but do **not** claim it is strongly isolated or appoint it as D1–D4. Continue analysis/review work and manual scrutiny under its existing limits.
+2. **Account-level write approval (requires separate approval):** changing GitHub app-specific permission from `Allow all actions` to `Ask before writes` would likely add human confirmation for mutating actions but affects the existing loop and **is not per-task identity separation**. Confirm product behavior before relying on it.
+3. **Separate owner identities (requires new users/connections and authorization):** recipients of shared tasks use their own app accounts. Distinct principals may then be available at account boundary; tests still need to demonstrate task-to-gateway authentication and no-write bypass.
+4. **Workspace Agents (requires eligible managed workspace and change of ADR):** test per-agent action constraints and dedicated agent-owned connections with schedules. These controls may address write scope but still need an authenticated Gateway subject and negative tests.
+
+### Updated stopping rule
+
+In the *current single-connected-account configuration*, the available evidence establishes an actual Scheduled Task GitHub write path but does not expose task-specific principals or task-specific deny rules. There is no authorized way, within this read-only Phase 0 scope, to exercise two independently signed Task-to-Gateway calls or to test a task-scoped write denial without changing identity, app permissions, Tasks, or deployment.
+
+Accordingly, **Phase 0 capability investigation is complete within the approved non-mutating test scope, but the Phase 0 exit gate is BLOCKED**. Do not treat further documentation-only SQL tests as progress toward that exit gate. Next progress requires an explicit authorization to change the runtime/identity/permissions test setup, not more Postgres concurrency tests.
