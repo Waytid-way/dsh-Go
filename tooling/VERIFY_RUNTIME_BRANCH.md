@@ -46,3 +46,30 @@ The script mirrors the runtime CI preparation sequence: install DSH from lock, c
 Use a single short-lived Vercel Sandbox (or an equivalent isolated Linux environment) with Node 24.22.1, pinned commit, and outbound npm registry access. Execute the script and capture the exit code, TAP test/pass/fail/skip totals, runtime versions, git SHA and exact failure if any. Stop the sandbox. If npm preparation fails deterministically, diagnose once and stop rather than retrying blindly.
 
 **Security:** This runner installs third-party npm packages and executes patching code from the checked-out repository; run only in a disposable sandbox with no production credentials. It deliberately does not delete the disposable directory itself, so an operator can inspect failures before cleanup.
+
+## Optional cgroup-v2 telemetry for bounded npm diagnosis
+
+The earlier isolated 2-GiB Vercel run terminated `npm ci` with exit 137. This is **not proof of OOM**. To distinguish memory-limit kills from other termination paths, use the independent, cgroup-v2-only wrapper in a fresh disposable sandbox **before** running the full prepared-prefix test again:
+
+```bash
+# From a clean checkout of this branch; use only public lockfile dependencies.
+git rev-parse HEAD
+bash -n tooling/measure-command.sh
+log_dir="$(mktemp -d)"
+# Do not run the entire prepared-prefix script blindly on the same 2-GiB configuration.
+# First isolate the first pinned npm ci with a suitable bounded memory limit.
+bash tooling/measure-command.sh "$log_dir" npm ci --prefix "$RUNNER_TEMP/dsh" --ignore-scripts --no-audit --no-fund
+status=$?
+cat "$log_dir/command.exit"
+cat "$log_dir/memory.events.before"
+cat "$log_dir/memory.events.after"
+tail -n 10 "$log_dir/cgroup.tsv"
+# Inspect stdout/stderr locally and redact any sensitive data before publishing.
+exit "$status"
+```
+
+**Preconditions:** `RUNNER_TEMP/dsh` already contains the copied pinned DSH `package.json` and `package-lock.json` from `runtime/locks/dsh-0.2.2-rc.1/`. Use a fresh log directory, cgroup v2 files readable at `/sys/fs/cgroup/`, and explicit allowlist access to the lockfile's `registry.npmmirror.com` host. Never publish unreviewed npm logs. If the sandbox uses nested cgroups, inspect the relevant effective process cgroup rather than assuming `/sys/fs/cgroup` is the limit that killed the command.
+
+**Interpretation:** Compare `oom_kill` in `memory.events.before` and `memory.events.after`; an increase supports a cgroup OOM kill, while an unchanged counter means exit 137 remains unattributed. `memory.max` equal to `max` indicates no limit at that observed cgroup. Samples are one-second resolution and can miss transient peaks; this wrapper cannot prove absence of memory pressure. If the wrapper process itself is killed, the final event snapshot and exit file may be absent.
+
+**Local wrapper-only checks (not npm/runtime verification):** `bash -n` exit 0; `bash -c 'exit 7'` produced wrapper exit 7 and `command.exit=7`; successful command produced exit 0 and `command.exit=0`; reuse of telemetry output directory refused with exit 73. These checks were executed in a Linux cgroup-v2 container, **not** in the Vercel Sandbox. Runtime TAP, Flutter, OHOS remain **NOT_RUN** for this addition.
