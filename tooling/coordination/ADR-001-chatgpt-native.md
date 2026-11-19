@@ -95,3 +95,12 @@ See [PHASE0_CAPABILITY_PROOF.md](PHASE0_CAPABILITY_PROOF.md) for current dated o
 ## Safety invariants
 
 Do not modify `main`, scheduled automations, production resources, provider permissions or connected accounts in Phase 0. Do not issue credentials, create worker tasks, deploy gateway functions, create production access, open domains or enable new claims without the appropriate later gate approval. Existing Supabase schema and test proof may be reused, but passing database tests does not imply authenticated task execution.
+## Phase 0 addendum (2026-11-20): observed GitHub write bypass
+
+The [Phase 0 capability report](PHASE0_CAPABILITY_PROOF.md) now independently verifies that an existing Scheduled Task posted [GitHub Issue #6 comment 7019117047](https://github.com/Waytid-way/dsh-Go/issues/6#issuecomment-7019117047) without user action required on that run. This is an actual external write path outside the proposed Supabase Gateway, not merely a theoretical risk.
+
+This observation **does not change ADR's selected target architecture or authorize new implementation**. It strengthens the following acceptance invariant:
+
+> Before a worker is called an *isolated authenticated worker*, demonstrate through real task-context tests both a distinct verified caller principal and failure of all direct GitHub write paths that could bypass Gateway authorization. A gateway alone cannot enforce this while workers retain unrestricted direct writes.
+
+Task-scoped restriction cannot be substituted with prompts or a shared GitHub-connected account. The existing automated loop is not designated a privileged domain worker by this ADR. The authorized non-mutating Phase 0 investigation has exhausted its testable path; further runtime/permission changes require a separate approved experiment.
