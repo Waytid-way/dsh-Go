@@ -104,3 +104,17 @@ This observation **does not change ADR's selected target architecture or authori
 > Before a worker is called an *isolated authenticated worker*, demonstrate through real task-context tests both a distinct verified caller principal and failure of all direct GitHub write paths that could bypass Gateway authorization. A gateway alone cannot enforce this while workers retain unrestricted direct writes.
 
 Task-scoped restriction cannot be substituted with prompts or a shared GitHub-connected account. The existing automated loop is not designated a privileged domain worker by this ADR. The authorized non-mutating Phase 0 investigation has exhausted its testable path; further runtime/permission changes require a separate approved experiment.
+
+## Proposed amendment for later decision: capability-first execution safety
+
+**Status:** PROPOSED / NOT APPROVED. The previously approved ADR Phase 0-only scope is unchanged.
+
+Phase 0 found that worker-specific identity and worker-constrained write authority are separate proofs. Existing Scheduled Tasks use connected-account app access; the current automation has an actual issue-comment write record. The GitHub connected account reports admin and push privileges on the fork. The repo rulesets API returned no rulesets; main branch protection could not be inspected due a 403.
+
+A shared authenticated account credential cannot distinguish two Tasks using that same credential. We should therefore avoid treating distinct textual Task names or arbitrary signed gateway tokens created for a shared connection as per-worker identity.
+
+**Candidate migration after the legacy loop and final audit:** restrict advisory workers' *effective provider/tool privileges* to read-only, accept their proposed changes as untrusted data, and route approved writes through one separately authenticated least-privilege GitHub App/Trusted Writer. The writer verifies authorization, stale state and outcomes. This may provide execution safety before task identity is available, but does not demonstrate per-task domain isolation. An account-wide 'Ask before writes' permission is not a substitute for provider-side read-only access.
+
+**Other options:** Workspace Agents in eligible Business/Enterprise workspaces advertise per-agent action constraints, agent-owned connections and schedules; independently owned Scheduled Task copies run under their recipients' connected accounts. Both require feasibility checks and an explicit decision to change the existing runtime/account model.
+
+No permission, GitHub ruleset, runtime, secret or automation modification is authorized by this proposed appendix. See [continued Phase 0 evidence](PHASE0_CAPABILITY_PROOF.md).
