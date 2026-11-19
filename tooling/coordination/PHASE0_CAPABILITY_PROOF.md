@@ -124,3 +124,53 @@ Official ChatGPT product documentation currently establishes:
 In the *current single-connected-account configuration*, the available evidence establishes an actual Scheduled Task GitHub write path but does not expose task-specific principals or task-specific deny rules. There is no authorized way, within this read-only Phase 0 scope, to exercise two independently signed Task-to-Gateway calls or to test a task-scoped write denial without changing identity, app permissions, Tasks, or deployment.
 
 Accordingly, **Phase 0 capability investigation is complete within the approved non-mutating test scope, but the Phase 0 exit gate is BLOCKED**. Do not treat further documentation-only SQL tests as progress toward that exit gate. Next progress requires an explicit authorization to change the runtime/identity/permissions test setup, not more Postgres concurrency tests.
+
+## Continued first-principles review: separating identity and authority (2026-11-20)
+
+### Proven access boundary
+
+Read-only GitHub connector calls on `Waytid-way/dsh-Go` observed:
+- `get_repo` reports the linked user has `admin=true`, `push=true`, `maintain=true`, `pull=true`, and `triage=true`.
+- `GET /repos/Waytid-way/dsh-Go/rulesets` returned an empty list (`[]`). This indicates **no repository rulesets returned at inspection**, not proof that no other policy exists.
+- `GET /repos/Waytid-way/dsh-Go/branches/main/protection` returned `403 Resource not accessible by integration`. The state of legacy branch protection is **UNKNOWN**, not necessarily absent.
+
+These observations cannot establish which precise actions a particular scheduled run can call. The previously observed successful Issue #6 comment provides one concrete externally visible write via the scheduled workflow.
+
+Official GitHub docs confirm repository rulesets can restrict branch creation and updates and can require PRs or checks, but they are not a per-task identity system and do not protect all issue/comment operations:
+https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
+
+### Indistinguishability constraint
+
+If Task A and Task B possess the same independently authenticated provider credential and have the same effective permissions, a gateway cannot distinguish them solely from identical valid requests. Ordinary payload values such as `task_id`, `worker_id`, `domain`, time windows, and idempotency keys can be copied or forged by either task. A nonce helps freshness but not source attribution. A JWT that represents only the **shared connection** proves connection identity, not which Task sent the request.
+
+This gives two distinct requirements:
+
+1. **Execution safety:** workers lack independent paths to privileged writes outside the permitted writer.
+2. **Worker accountability:** claims, renewals and domain assignments are bound to a verifiable per-worker principal.
+
+Execution safety can be established at a *capability boundary* without cryptographically proving a worker identity **if** every worker has only limited upstream authority and the writer separately verifies and approves commands. However, **strong per-domain worker isolation** still requires distinguishable principals or hard task-level tool/access restrictions.
+
+### Proposed ADR amendment, not yet approved
+
+A practical alternative after the existing engineering loop and final read-only audit have finished is:
+
+1. **Worker-side constrained authority:** establish a truly read-only GitHub connection at the provider/tool-action level for all advisory ChatGPT workers. Merely changing 'Allow all actions' to 'Ask before writes' is approval policy, not true permission reduction. Preserve the current connection and automation behavior until a separately approved transition.
+2. **Untrusted proposal queue:** workers submit suggested changes or evidence as untrusted data. A shared connection or ordinary textual worker label is *not* a trusted provenance claim. Queue submission grants no GitHub write authority.
+3. **Single trusted writer:** human-authorized operation with a dedicated least-privilege GitHub App/service credential (separate from worker credentials). It checks allowed repo, branch, operation, current HEAD, test evidence and immutable approval before write, then reconciles unknown outcomes. Start with human approval for every write.
+4. **Deferred per-worker claims:** do not enable Supabase worker-specific claim RPCs until genuine per-worker identity is demonstrated. A centralized coordinator may track proposals without pretending to know a cryptographically authenticated task source.
+5. **Source-side rules:** once authorized, consider GitHub rulesets for protected branch patterns to prevent bypass even if an execution component misbehaves. Verify with protected-branch and direct-write denial tests. Rulesets alone do not isolate issue writes or arbitrary development branches.
+
+This preserves ChatGPT-native *analysis* and can restore some multi-agent throughput through parallel proposals, while acknowledging lower autonomy and uncertain task attribution. It is **not** the fully approved strong-isolation execution architecture and requires a new decision before changing permissions, app connections, creating a writer credential, or deploying anything.
+
+### Alternatives requiring separate authorization
+
+- **Workspace Agents (Business/Enterprise):** official docs describe schedules, agent-owned connections, tool selection, action constraints and per-agent approval policy. This is a distinct product/runtime; eligibility on this account has not been verified. https://help.openai.com/en/articles/20001143-chatgpt-workspace-agents-for-enterprise-and-business
+- **Separate accounts / recipients of shared Scheduled Tasks:** recipients run copies under their own connected account and permissions. This provides account-level separation but introduces account/operational overhead and still requires signed gateway integration proof. https://help.openai.com/en/articles/10291617-scheduled-tasks-in-chatgpt
+
+### Updated conclusion
+
+**Current model:** do not start multi-domain workers, claim network auth PASS, or enable gateway writes.
+
+**Available next useful experiment:** a scoped, non-production **capability-denial rehearsal**, not another database lease test. It should verify a proposed worker's GitHub write call is denied by provider/task controls and a separate authorized writer can perform only explicitly allowed writes. The existing engineering loop and 09:30 final audit should be preserved until complete. Credential, connection, policy, or automation changes require human approval.
+
+**Status:** proposed design refinement; no policy or runtime mutation performed.
