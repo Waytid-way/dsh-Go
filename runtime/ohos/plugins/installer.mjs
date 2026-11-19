@@ -1,17 +1,13 @@
 import { constants } from 'node:fs';
 import { lstat, mkdir, mkdtemp, open, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
-import { isDeepStrictEqual } from 'node:util';
 import { createRegistry, parseRegistrySpec, registryError, secureUrl } from './registry.mjs';
+import { manifestMismatch } from './manifest.mjs';
 import { resolveGraph } from './graph.mjs';
 import { ARCHIVE_LIMITS, extractPackage } from './archive.mjs';
 import { transactionFor } from './store.mjs';
 
 const generationBytes = 256 * 1024 * 1024;
-const manifestFields = ['name', 'version', 'dependencies', 'optionalDependencies', 'peerDependencies',
-  'peerDependenciesMeta', 'bundledDependencies', 'bundleDependencies', 'os', 'cpu', 'libc', 'engines',
-  'dsh', 'scripts', 'gypfile', 'type', 'main', 'module', 'exports', 'imports', 'bin'];
-
 async function directory(path) {
   await mkdir(path, { recursive: true, mode: 0o700 });
   if (!(await lstat(path)).isDirectory()) throw registryError('Plugin directory is not a real directory');
@@ -53,13 +49,6 @@ async function download(node, path, options, budget) {
     throw registryError('Package download stream failed', 'ERR_PNPM_META_FETCH_FAIL');
   } finally {
     await reader.cancel().catch(() => {}); reader.releaseLock(); await file?.close();
-  }
-}
-
-function checkManifest(expected, actual) {
-  for (const field of manifestFields) {
-    if (!isDeepStrictEqual(expected[field], actual[field]))
-      throw registryError(`${expected.name}: archive manifest differs from locked ${field}`);
   }
 }
 
@@ -131,7 +120,8 @@ export async function runProfileOperation(context, args, options) {
         await download(node, archivePath, options, budget);
         const extracted = await extractPackage({ archivePath, integrity: node.integrity,
           stagingRoot: generation, name: node.name, version: node.version, signal: options.signal });
-        checkManifest(node.manifest, extracted.manifest);
+        const mismatch = manifestMismatch(node.manifest, extracted.manifest);
+        if (mismatch) throw registryError(`${node.name}: archive manifest differs from locked ${mismatch}`);
         await rm(archivePath);
         const destination = join(generation, `package-${index}`, 'node_modules', node.name);
         await directory(dirname(destination));
