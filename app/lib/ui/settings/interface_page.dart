@@ -23,7 +23,7 @@ import '../shell/page_frame.dart';
 import '../shell/quick_panel.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme.dart';
-import '../web/local_web_screen.dart';
+import '../web/dsh_web_launcher.dart' show openDshWeb;
 import 'quick_panel_items_sheet.dart';
 import 'settings_widgets.dart';
 
@@ -106,9 +106,13 @@ class InterfacePage extends ConsumerWidget {
             SettingsTile(
               spot: Spots.openWeb,
               // In 网页模式 the web app is the home underneath.
-              onTap: () => mode == UiMode.web
-                  ? Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst)
-                  : Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LocalWebScreen())),
+              onTap: () {
+                if (mode == UiMode.web) {
+                  Navigator.of(context, rootNavigator: true).popUntil((route) => route.isFirst);
+                } else {
+                  openDshWeb(context, ref);
+                }
+              },
             ),
             SettingsSwitchTile(
               spot: Spots.webPhoneLayout,
