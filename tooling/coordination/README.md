@@ -17,7 +17,7 @@ This is **not a dependency of the mobile application or DSH runtime**. Do not ad
 - Main tables: `domains`, `programs`, `worker_identities`, `work_items`, `work_leases`, `worker_runs`, `evidence_records`
 - Postgres functions: `claim_work(work_item_id, expected_revision, ttl_seconds)`, `renew_lease(work_item_id, token, generation, ttl_seconds)`, `release_lease(work_item_id, token, generation)`, `record_evidence(work_item_id, token, generation, idempotency_key, status, summary, github_url)`
 
-The functions currently exist in Supabase migration history; **there are no repository-maintained migrations yet**. Reproduction from a fresh database is therefore **not proven**. Do not treat this document as an executable setup script.
+The functions exist in Supabase migration history. The repository now contains **[bootstrap.sql](bootstrap.sql)** generated from the deployed SQL definitions, plus **[test-contract.sql](test-contract.sql)**. Bootstrap DDL was compiled in a separate test schema inside a transaction and then rolled back, with 4 domains, 1 program and 4 functions observed. **A clean Supabase project end-to-end provisioning run remains NOT_RUN.** Run bootstrap only on a fresh isolated database.
 
 ## Trusted interface and worker identity
 
