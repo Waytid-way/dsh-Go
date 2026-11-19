@@ -45,6 +45,8 @@ The `dsh-go` program cutoff is **2026-11-21 09:00 Asia/Bangkok**. `claim_work` r
 
 All four operational domains are currently disabled, the program does not accept new claims, and there are no registered active worker identities. To stop a future pilot: keep `programs.accept_new_claims=false`, disable the relevant domain and worker identities, and do not reconfigure the original scheduled task. Do not delete audit records as a form of rollback.
 
+A complete, bounded replay of the overlapping-transaction check (including temporary Cron scheduling and cleanup) is in [CONCURRENCY_REHEARSAL.md](CONCURRENCY_REHEARSAL.md). The harness is test-only; production coordination does not require Cron.
+
 ## Verification and limitations
 
 Performed against the dev database on 2026-11-20 (Asia/Bangkok):
