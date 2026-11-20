@@ -2,7 +2,6 @@ services:
   - type: web
     runtime: static
     name: dsh-go-worker-auth-dev
-    plan: free
     branch: waytid/coordination-oauth-consent-20261120
     autoDeployTrigger: off
     buildCommand: cd infra/dsh-go-coordination-auth && node tests/static-check.mjs
