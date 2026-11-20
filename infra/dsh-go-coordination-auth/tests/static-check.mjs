@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+for (const file of ['public/index.html','public/oauth/consent.html','public/app.js','public/style.css','render.yaml']) assert.ok(fs.statSync(file).size > 0, file);
+const html=fs.readFileSync('public/oauth/consent.html','utf8'),js=fs.readFileSync('public/app.js','utf8'),yaml=fs.readFileSync('render.yaml','utf8');
+assert.ok(html.includes('href="/style.css"') && html.includes('src="/app.js"'));
+assert.ok(html.includes('Content-Security-Policy') && html.includes('name="referrer"'));
+for(const id of ['consent-panel','login-panel','approve','deny']) assert.ok(html.includes('id="'+id+'"'),id);
+for(const fn of ['getAuthorizationDetails','approveAuthorization','denyAuthorization','signInWithOtp','shouldCreateUser: false','verifyOtp']) assert.ok(js.includes(fn),fn);
+assert.ok(!/sb_secret_|service_role|SUPABASE_SERVICE_ROLE_KEY|7dd44b57-3a5c-42e8-bb73-57bcaa6ea0ca/.test(js),'no private worker identifiers or secrets');
+assert.ok(yaml.includes('autoDeployTrigger: off') && yaml.includes('source: /oauth/consent'));
+console.log('Static contract tests PASS');

@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; script-src 'self' https://esm.sh; style-src 'self'; connect-src https://tcwlebixkpgvpqijpuqw.supabase.co https://esm.sh; form-action 'self'; upgrade-insecure-requests">
+  <title>DSH Go Worker Authorization</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="shell">
+    <div class="eyebrow">DSH Go · Development Coordination</div>
+    <h1>Worker authorization</h1>
+    <p>Sign in as the dedicated development worker and review every OAuth client request before approving.</p>
+    <p id="status" role="status" aria-live="polite">Starting…</p>
+    <p id="error" class="error hidden" role="alert"></p>
+    <section id="login-panel" class="panel hidden" aria-label="Sign in">
+      <h2>Sign in</h2>
+      <p>Use the pre-registered worker's email. Never paste an OTP or a magic link into a chat.</p>
+      <form id="send-link">
+        <label for="email">Worker account email</label>
+        <input id="email" type="email" autocomplete="email" required>
+        <button id="send-link-button" type="submit">Send sign-in email</button>
+      </form>
+      <form id="verify-code">
+        <label for="otp">One-time code (if supplied)</label>
+        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="12">
+        <button id="verify-button" class="secondary" type="submit">Verify code</button>
+      </form>
+    </section>
+    <section id="signed-in-panel" class="panel hidden" aria-label="Signed-in account">
+      <div>Supabase Auth session verified</div>
+      <button id="signout" class="subtle" type="button">Sign out</button>
+    </section>
+    <section id="consent-panel" class="panel hidden" aria-label="OAuth permission request">
+      <h2>Review requested access</h2>
+      <dl>
+        <dt>Client</dt><dd id="client-name"></dd>
+        <dt>Redirect destination</dt><dd id="redirect-uri" class="break"></dd>
+        <dt>Scopes</dt><dd><ul id="scopes"></ul></dd>
+      </dl>
+      <p>Approving this request grants the client an OAuth session. It does not enable any worker or program; the database still checks worker identity, domain and lease permissions.</p>
+      <div class="actions">
+        <button id="deny" class="secondary" type="button">Deny</button>
+        <button id="approve" type="button">Approve</button>
+      </div>
+    </section>
+    <footer>This public page stores no service-role key or worker UUID. Authorization enforcement is performed by private Supabase RPCs.</footer>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

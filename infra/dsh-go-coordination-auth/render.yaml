@@ -1,0 +1,32 @@
+services:
+  - type: web
+    runtime: static
+    name: dsh-go-worker-auth-dev
+    plan: free
+    branch: waytid/coordination-oauth-consent-20261120
+    autoDeployTrigger: off
+    buildCommand: cd infra/dsh-go-coordination-auth && node tests/static-check.mjs
+    staticPublishPath: ./infra/dsh-go-coordination-auth/public
+    routes:
+      - type: rewrite
+        source: /oauth/consent
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: no-referrer
+      - path: /*
+        name: Permissions-Policy
+        value: camera=(), microphone=(), geolocation=()
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'none'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self' https://esm.sh; style-src 'self'; connect-src https://tcwlebixkpgvpqijpuqw.supabase.co https://esm.sh; form-action 'self'; upgrade-insecure-requests"
+      - path: /oauth/consent.html
+        name: Cache-Control
+        value: no-store
