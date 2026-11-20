@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.119.1';
 
 const SUPABASE_URL = 'https://tcwlebixkpgvpqijpuqw.supabase.co';
-// A publishable key is designed for browser use. Never use a secret or service_role key.
+// This browser only uses a public publishable key; privileged credentials are forbidden.
 const PUBLIC_KEY = 'sb_publishable_18z1aT6yiApi-pmzee-3pQ_U86J67S6';
 const supabase = createClient(SUPABASE_URL, PUBLIC_KEY, {
   auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
